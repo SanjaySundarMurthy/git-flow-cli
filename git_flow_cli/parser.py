@@ -1,0 +1,102 @@
+"""Parse repository configuration YAML into model objects."""
+import re
+import yaml
+from .models import (
+    RepoConfig, Branch, PullRequest, BranchStrategy, BranchType,
+    PRStatus, MergeStrategy,
+)
+
+STRATEGY_MAP = {
+    "gitflow": BranchStrategy.GITFLOW,
+    "github_flow": BranchStrategy.GITHUB_FLOW,
+    "trunk_based": BranchStrategy.TRUNK_BASED,
+    "release_flow": BranchStrategy.RELEASE_FLOW,
+}
+
+PR_STATUS_MAP = {
+    "open": PRStatus.OPEN,
+    "merged": PRStatus.MERGED,
+    "closed": PRStatus.CLOSED,
+    "draft": PRStatus.DRAFT,
+}
+
+MERGE_MAP = {
+    "merge_commit": MergeStrategy.MERGE_COMMIT,
+    "squash": MergeStrategy.SQUASH,
+    "rebase": MergeStrategy.REBASE,
+    "fast_forward": MergeStrategy.FAST_FORWARD,
+}
+
+
+def classify_branch(name: str) -> BranchType:
+    """Classify a branch name into a BranchType."""
+    if name in ("main", "master"):
+        return BranchType.MAIN
+    elif name in ("develop", "dev", "development"):
+        return BranchType.DEVELOP
+    elif name.startswith("feature/"):
+        return BranchType.FEATURE
+    elif name.startswith("release/"):
+        return BranchType.RELEASE
+    elif name.startswith("hotfix/"):
+        return BranchType.HOTFIX
+    elif name.startswith("bugfix/"):
+        return BranchType.BUGFIX
+    elif name.startswith("support/"):
+        return BranchType.SUPPORT
+    return BranchType.UNKNOWN
+
+
+def parse_repo_config(yaml_content: str) -> RepoConfig:
+    """Parse repository configuration from YAML."""
+    data = yaml.safe_load(yaml_content)
+    if not data:
+        return RepoConfig()
+    strategy_str = data.get("strategy", "gitflow").lower()
+    config = RepoConfig(
+        name=data.get("name", ""),
+        default_branch=data.get("default_branch", "main"),
+        strategy=STRATEGY_MAP.get(strategy_str, BranchStrategy.GITFLOW),
+        required_approvals=data.get("required_approvals", 1),
+        enforce_linear_history=data.get("enforce_linear_history", False),
+        branch_naming_pattern=data.get("branch_naming_pattern", r"^(feature|bugfix|hotfix|release)/[a-z0-9-]+$"),
+        max_pr_size=data.get("max_pr_size", 500),
+        max_pr_age_days=data.get("max_pr_age_days", 14),
+    )
+    for b_data in data.get("branches", []):
+        name = b_data.get("name", "")
+        branch = Branch(
+            name=name,
+            branch_type=classify_branch(name),
+            is_protected=b_data.get("is_protected", False),
+            last_commit_age_days=b_data.get("last_commit_age_days", 0),
+            ahead_of_main=b_data.get("ahead_of_main", 0),
+            behind_main=b_data.get("behind_main", 0),
+            author=b_data.get("author", ""),
+        )
+        config.branches.append(branch)
+    for pr_data in data.get("pull_requests", []):
+        status_str = pr_data.get("status", "open").lower()
+        merge_str = pr_data.get("merge_strategy", "squash").lower()
+        pr = PullRequest(
+            number=pr_data.get("number", 0),
+            title=pr_data.get("title", ""),
+            source_branch=pr_data.get("source_branch", ""),
+            target_branch=pr_data.get("target_branch", "main"),
+            status=PR_STATUS_MAP.get(status_str, PRStatus.OPEN),
+            author=pr_data.get("author", ""),
+            reviewers=pr_data.get("reviewers", []),
+            approvals=pr_data.get("approvals", 0),
+            required_approvals=data.get("required_approvals", 1),
+            has_ci_passed=pr_data.get("has_ci_passed", True),
+            has_description=pr_data.get("has_description", True),
+            files_changed=pr_data.get("files_changed", 0),
+            lines_added=pr_data.get("lines_added", 0),
+            lines_deleted=pr_data.get("lines_deleted", 0),
+            age_days=pr_data.get("age_days", 0),
+            has_linked_issue=pr_data.get("has_linked_issue", False),
+            merge_strategy=MERGE_MAP.get(merge_str, MergeStrategy.SQUASH),
+            labels=pr_data.get("labels", []),
+        )
+        config.pull_requests.append(pr)
+    return config

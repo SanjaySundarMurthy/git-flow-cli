@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "git-flow-cli"
+version = "1.0.0"
+description = "Branch strategy enforcer and PR health checker for Git workflows"
+requires-python = ">=3.9"
+dependencies = [
+    "click>=8.0.0",
+    "rich>=13.0.0",
+    "pyyaml>=6.0",
+]
+
+[project.scripts]
+git-flow-cli = "git_flow_cli.cli:cli"
+
+[tool.setuptools.packages.find]
+include = ["git_flow_cli*"]
