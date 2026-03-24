@@ -1,0 +1,85 @@
+# Sample Configuration for git-flow-cli
+# Full reference with all available options
+#
+# Usage: git-flow-cli audit examples/sample-config.yaml
+
+name: acme-platform
+default_branch: main
+strategy: gitflow  # Options: gitflow, github_flow, trunk_based, release_flow
+
+# Review requirements
+required_approvals: 2
+
+# Enforce linear history (rebase-only, no merge commits)
+enforce_linear_history: false
+
+# Require Conventional Commits format (feat:, fix:, docs:, etc.)
+require_conventional_commits: false
+
+# Maximum PR size (total lines added + deleted)
+max_pr_size: 500
+
+# Maximum days a PR can remain open
+max_pr_age_days: 14
+
+# Branch naming regex pattern
+branch_naming_pattern: "^(feature|bugfix|hotfix|release)/[a-z0-9-]+$"
+
+# Required labels on PRs (empty = no requirement)
+required_labels:
+  - bug
+  - enhancement
+  - documentation
+
+# Branch definitions
+branches:
+  - name: main
+    is_protected: true
+    last_commit_age_days: 0
+    has_linear_history: true
+
+  - name: develop
+    is_protected: true
+    last_commit_age_days: 1
+    has_linear_history: true
+
+  - name: feature/user-auth
+    is_protected: false
+    last_commit_age_days: 3
+    ahead_of_main: 5
+    behind_main: 10
+    author: dev1
+
+  - name: feature/payment
+    is_protected: false
+    last_commit_age_days: 2
+    ahead_of_main: 8
+    behind_main: 5
+    author: dev2
+
+# Pull request definitions
+pull_requests:
+  - number: 42
+    title: "Add user authentication"
+    source_branch: feature/user-auth
+    target_branch: develop
+    status: open
+    author: dev1
+    reviewers:
+      - dev2
+      - dev3
+    approvals: 2
+    has_ci_passed: true
+    has_description: true
+    files_changed: 12
+    lines_added: 180
+    lines_deleted: 30
+    age_days: 4
+    has_linked_issue: true
+    merge_strategy: squash
+    labels:
+      - enhancement
+    commit_messages:
+      - "feat(auth): add login endpoint"
+      - "feat(auth): add JWT token validation"
+      - "test(auth): add auth unit tests"
