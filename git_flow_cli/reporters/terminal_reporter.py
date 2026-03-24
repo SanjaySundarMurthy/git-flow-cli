@@ -15,34 +15,67 @@ SEVERITY_COLORS = {
     Severity.INFO: "dim",
 }
 
+SEVERITY_ICONS = {
+    Severity.CRITICAL: "🔴",
+    Severity.HIGH: "🟠",
+    Severity.MEDIUM: "🟡",
+    Severity.LOW: "🔵",
+    Severity.INFO: "⚪",
+}
 
-def print_report(report: FlowReport, console: Optional[Console] = None):
+
+def print_report(
+    report: FlowReport, console: Optional[Console] = None
+):
     console = console or Console()
-    grade_color = {"A": "green", "B": "blue", "C": "yellow", "D": "red", "F": "red bold"}.get(report.grade, "white")
+    grade_color = {
+        "A": "green", "B": "blue", "C": "yellow",
+        "D": "red", "F": "red bold",
+    }.get(report.grade, "white")
+
+    findings_summary = (
+        f"🔴 {report.critical_count}"
+        f" 🟠 {report.high_count}"
+        f" 🟡 {report.medium_count}"
+        f" 🔵 {report.low_count}"
+        f" ⚪ {report.info_count}"
+    )
+
     console.print(Panel(
         f"[bold]Repository:[/] {report.repo_name}\n"
         f"[bold]Strategy:[/] {report.strategy.value}\n"
-        f"[bold]Branches:[/] {report.total_branches} | [bold]PRs:[/] {report.total_prs}\n"
-        f"[bold]Health Score:[/] [{grade_color}]{report.health_score:.1f}/100 (Grade {report.grade})[/]\n"
-        f"[bold]Findings:[/] {len(report.findings)} "
-        f"(🔴 {report.critical_count} 🟠 {report.high_count} 🟡 {report.medium_count} 🔵 {report.low_count} ⚪ {report.info_count})",
+        f"[bold]Branches:[/] {report.total_branches}"
+        f" | [bold]PRs:[/] {report.total_prs}\n"
+        f"[bold]Health Score:[/]"
+        f" [{grade_color}]"
+        f"{report.health_score:.1f}/100"
+        f" (Grade {report.grade})[/]\n"
+        f"[bold]Findings:[/] {len(report.findings)}"
+        f" ({findings_summary})",
         title="🌿 Git Flow Analysis Report",
         border_style=grade_color,
     ))
+
     if not report.findings:
-        console.print("[green]✅ Repository follows best practices![/]")
+        console.print(
+            "[green]✅ Repository follows best practices![/]"
+        )
         return
+
     table = Table(title="Findings", show_lines=True)
     table.add_column("Rule", style="bold", width=10)
     table.add_column("Severity", width=10)
     table.add_column("Resource", width=25)
     table.add_column("Issue", width=45)
     table.add_column("Recommendation", width=40)
+
     for f in report.findings:
         sev_style = SEVERITY_COLORS.get(f.severity, "white")
+        icon = SEVERITY_ICONS.get(f.severity, "")
         table.add_row(
             f.rule_id,
-            f"[{sev_style}]{f.severity.value.upper()}[/]",
+            f"[{sev_style}]{icon}"
+            f" {f.severity.value.upper()}[/]",
             f"{f.resource_type}/{f.resource_name}",
             f.description,
             f.recommendation,

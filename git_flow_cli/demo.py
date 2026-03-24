@@ -10,17 +10,65 @@ def get_demo_repo_config() -> str:
         "strategy": "gitflow",
         "required_approvals": 2,
         "enforce_linear_history": True,
+        "require_conventional_commits": True,
         "max_pr_size": 500,
         "max_pr_age_days": 14,
-        "branch_naming_pattern": r"^(feature|bugfix|hotfix|release)/[a-z0-9-]+$",
+        "branch_naming_pattern": (
+            r"^(feature|bugfix|hotfix|release)/[a-z0-9-]+$"
+        ),
+        "required_labels": [
+            "bug", "enhancement", "documentation",
+        ],
         "branches": [
-            {"name": "main", "is_protected": False, "last_commit_age_days": 0, "ahead_of_main": 0, "behind_main": 0},
-            {"name": "develop", "is_protected": True, "last_commit_age_days": 1, "ahead_of_main": 5, "behind_main": 0},
-            {"name": "feature/user-auth", "is_protected": False, "last_commit_age_days": 2, "ahead_of_main": 3, "behind_main": 10},
-            {"name": "feature/payment-gateway", "is_protected": False, "last_commit_age_days": 5, "ahead_of_main": 12, "behind_main": 75},
-            {"name": "my-experiment", "is_protected": False, "last_commit_age_days": 45, "ahead_of_main": 1, "behind_main": 120},
-            {"name": "hotfix/fix-login", "is_protected": False, "last_commit_age_days": 1, "ahead_of_main": 2, "behind_main": 0},
-            {"name": "JIRA-1234", "is_protected": False, "last_commit_age_days": 10, "ahead_of_main": 5, "behind_main": 20},
+            {
+                "name": "main",
+                "is_protected": False,
+                "last_commit_age_days": 0,
+                "has_linear_history": True,
+            },
+            {
+                "name": "develop",
+                "is_protected": False,
+                "last_commit_age_days": 1,
+                "has_linear_history": False,
+            },
+            {
+                "name": "feature/user-auth",
+                "is_protected": False,
+                "last_commit_age_days": 2,
+                "ahead_of_main": 3,
+                "behind_main": 10,
+                "has_linear_history": True,
+            },
+            {
+                "name": "feature/payment-gateway",
+                "is_protected": False,
+                "last_commit_age_days": 5,
+                "ahead_of_main": 12,
+                "behind_main": 75,
+                "has_linear_history": False,
+            },
+            {
+                "name": "my-experiment",
+                "is_protected": False,
+                "last_commit_age_days": 45,
+                "ahead_of_main": 1,
+                "behind_main": 120,
+            },
+            {
+                "name": "hotfix/fix-login",
+                "is_protected": False,
+                "last_commit_age_days": 1,
+                "ahead_of_main": 2,
+                "behind_main": 0,
+            },
+            {
+                "name": "JIRA-1234",
+                "is_protected": False,
+                "last_commit_age_days": 10,
+                "ahead_of_main": 5,
+                "behind_main": 20,
+            },
         ],
         "pull_requests": [
             {
@@ -39,12 +87,17 @@ def get_demo_repo_config() -> str:
                 "lines_deleted": 50,
                 "age_days": 3,
                 "has_linked_issue": True,
+                "labels": ["enhancement"],
+                "commit_messages": [
+                    "feat(auth): add login endpoint",
+                    "feat(auth): add JWT validation",
+                ],
             },
             {
                 "number": 102,
                 "title": "Payment gateway integration",
                 "source_branch": "feature/payment-gateway",
-                "target_branch": "develop",
+                "target_branch": "main",
                 "status": "open",
                 "author": "dev2",
                 "reviewers": [],
@@ -56,6 +109,12 @@ def get_demo_repo_config() -> str:
                 "lines_deleted": 100,
                 "age_days": 20,
                 "has_linked_issue": False,
+                "labels": [],
+                "commit_messages": [
+                    "wip payment stuff",
+                    "fix things",
+                    "more fixes",
+                ],
             },
             {
                 "number": 103,
@@ -73,6 +132,10 @@ def get_demo_repo_config() -> str:
                 "lines_deleted": 10,
                 "age_days": 1,
                 "has_linked_issue": True,
+                "labels": ["bug"],
+                "commit_messages": [
+                    "fix(auth): resolve login redirect loop",
+                ],
             },
         ],
     }

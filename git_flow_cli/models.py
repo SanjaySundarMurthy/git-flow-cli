@@ -1,7 +1,6 @@
 """Data models for git flow analysis."""
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any
 
 
 class Severity(str, Enum):
@@ -53,6 +52,7 @@ class Branch:
     ahead_of_main: int = 0
     behind_main: int = 0
     author: str = ""
+    has_linear_history: bool = True
     labels: dict[str, str] = field(default_factory=dict)
 
 
@@ -76,6 +76,21 @@ class PullRequest:
     has_linked_issue: bool = False
     merge_strategy: MergeStrategy = MergeStrategy.SQUASH
     labels: list[str] = field(default_factory=list)
+    commit_messages: list[str] = field(default_factory=list)
+
+
+CONVENTIONAL_COMMIT_PATTERN = (
+    r"^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)"
+    r"(\(.+\))?!?:\s.+"
+)
+
+GITFLOW_TARGETS: dict[str, list[str]] = {
+    "feature": ["develop"],
+    "bugfix": ["develop"],
+    "release": ["main", "develop"],
+    "hotfix": ["main", "develop"],
+    "support": ["main"],
+}
 
 
 @dataclass
@@ -87,9 +102,13 @@ class RepoConfig:
     pull_requests: list[PullRequest] = field(default_factory=list)
     required_approvals: int = 1
     enforce_linear_history: bool = False
-    branch_naming_pattern: str = r"^(feature|bugfix|hotfix|release)/[a-z0-9-]+$"
+    branch_naming_pattern: str = (
+        r"^(feature|bugfix|hotfix|release)/[a-z0-9-]+$"
+    )
     max_pr_size: int = 500
     max_pr_age_days: int = 14
+    require_conventional_commits: bool = False
+    required_labels: list[str] = field(default_factory=list)
     labels: dict[str, str] = field(default_factory=dict)
 
 
@@ -124,12 +143,32 @@ class FlowReport:
     def compute_summary(self):
         self.total_branches = len(self.branches)
         self.total_prs = len(self.pull_requests)
-        self.critical_count = sum(1 for f in self.findings if f.severity == Severity.CRITICAL)
-        self.high_count = sum(1 for f in self.findings if f.severity == Severity.HIGH)
-        self.medium_count = sum(1 for f in self.findings if f.severity == Severity.MEDIUM)
-        self.low_count = sum(1 for f in self.findings if f.severity == Severity.LOW)
-        self.info_count = sum(1 for f in self.findings if f.severity == Severity.INFO)
-        penalty = (self.critical_count * 15) + (self.high_count * 10) + (self.medium_count * 5) + (self.low_count * 2)
+        self.critical_count = sum(
+            1 for f in self.findings
+            if f.severity == Severity.CRITICAL
+        )
+        self.high_count = sum(
+            1 for f in self.findings
+            if f.severity == Severity.HIGH
+        )
+        self.medium_count = sum(
+            1 for f in self.findings
+            if f.severity == Severity.MEDIUM
+        )
+        self.low_count = sum(
+            1 for f in self.findings
+            if f.severity == Severity.LOW
+        )
+        self.info_count = sum(
+            1 for f in self.findings
+            if f.severity == Severity.INFO
+        )
+        penalty = (
+            (self.critical_count * 15)
+            + (self.high_count * 10)
+            + (self.medium_count * 5)
+            + (self.low_count * 2)
+        )
         self.health_score = max(0.0, 100.0 - penalty)
         if self.health_score >= 90:
             self.grade = "A"
@@ -147,61 +186,160 @@ GIT_RULES = {
     "GIT-001": {
         "title": "Main Branch Not Protected",
         "severity": Severity.CRITICAL,
-        "description": "Main/master branch lacks branch protection rules",
-        "recommendation": "Enable branch protection with required reviews and status checks",
+        "description": (
+            "Main/master branch lacks branch protection rules"
+        ),
+        "recommendation": (
+            "Enable branch protection with required reviews"
+            " and status checks"
+        ),
     },
     "GIT-002": {
         "title": "Invalid Branch Naming Convention",
         "severity": Severity.MEDIUM,
-        "description": "Branch name does not follow the configured naming pattern",
-        "recommendation": "Rename branch to follow pattern: feature/, bugfix/, hotfix/, release/",
+        "description": (
+            "Branch does not follow the configured naming pattern"
+        ),
+        "recommendation": (
+            "Rename branch to follow pattern:"
+            " feature/, bugfix/, hotfix/, release/"
+        ),
     },
     "GIT-003": {
         "title": "Stale Branch Detected",
         "severity": Severity.LOW,
-        "description": "Branch has not been updated in over 30 days",
-        "recommendation": "Delete or update stale branches to keep repository clean",
+        "description": (
+            "Branch has not been updated in over 30 days"
+        ),
+        "recommendation": (
+            "Delete or update stale branches"
+            " to keep repository clean"
+        ),
     },
     "GIT-004": {
         "title": "PR Missing Required Approvals",
         "severity": Severity.HIGH,
-        "description": "Pull request does not have the required number of approvals",
-        "recommendation": "Request additional reviews before merging",
+        "description": (
+            "Pull request does not have"
+            " the required number of approvals"
+        ),
+        "recommendation": (
+            "Request additional reviews before merging"
+        ),
     },
     "GIT-005": {
         "title": "Large Pull Request",
         "severity": Severity.MEDIUM,
         "description": "PR changes exceed recommended size limit",
-        "recommendation": "Break large PRs into smaller, focused changes",
+        "recommendation": (
+            "Break large PRs into smaller, focused changes"
+        ),
     },
     "GIT-006": {
         "title": "PR Missing Description",
         "severity": Severity.MEDIUM,
-        "description": "Pull request has no description or context",
-        "recommendation": "Add a clear description explaining the changes and motivation",
+        "description": (
+            "Pull request has no description or context"
+        ),
+        "recommendation": (
+            "Add a clear description explaining"
+            " changes and motivation"
+        ),
     },
     "GIT-007": {
         "title": "CI Checks Not Passing",
         "severity": Severity.HIGH,
-        "description": "Pull request has failing CI/CD pipeline checks",
+        "description": (
+            "Pull request has failing CI/CD pipeline checks"
+        ),
         "recommendation": "Fix CI failures before merging",
     },
     "GIT-008": {
         "title": "Branch Significantly Behind Main",
         "severity": Severity.MEDIUM,
-        "description": "Feature branch is more than 50 commits behind main",
-        "recommendation": "Rebase or merge main into feature branch to reduce conflicts",
+        "description": (
+            "Feature branch is more than 50 commits behind main"
+        ),
+        "recommendation": (
+            "Rebase or merge main into feature branch"
+            " to reduce conflicts"
+        ),
     },
     "GIT-009": {
         "title": "Stale Pull Request",
         "severity": Severity.LOW,
-        "description": "Pull request has been open for more than 14 days",
-        "recommendation": "Review, update, or close stale pull requests",
+        "description": (
+            "Pull request has been open for more than 14 days"
+        ),
+        "recommendation": (
+            "Review, update, or close stale pull requests"
+        ),
     },
     "GIT-010": {
-        "title": "No Linked Issue",
+        "title": "PR Has No Linked Issue",
         "severity": Severity.LOW,
-        "description": "Pull request has no linked issue for tracking",
-        "recommendation": "Link a related issue for better traceability",
+        "description": (
+            "Pull request is not linked to any issue"
+        ),
+        "recommendation": (
+            "Link PR to an issue using"
+            " 'Closes #123' in description"
+        ),
+    },
+    "GIT-011": {
+        "title": "Non-Linear History Detected",
+        "severity": Severity.MEDIUM,
+        "description": (
+            "Branch has merge commits breaking linear history"
+        ),
+        "recommendation": (
+            "Use rebase instead of merge"
+            " to maintain linear history"
+        ),
+    },
+    "GIT-012": {
+        "title": "Unconventional Commit Message",
+        "severity": Severity.LOW,
+        "description": (
+            "Commit message does not follow"
+            " Conventional Commits format"
+        ),
+        "recommendation": (
+            "Use format: type(scope): description"
+            " (e.g., feat(auth): add login)"
+        ),
+    },
+    "GIT-013": {
+        "title": "PR Missing Required Labels",
+        "severity": Severity.LOW,
+        "description": (
+            "Pull request has no categorization labels"
+        ),
+        "recommendation": (
+            "Add labels like bug, enhancement, documentation"
+        ),
+    },
+    "GIT-014": {
+        "title": "Invalid Branch Flow Target",
+        "severity": Severity.HIGH,
+        "description": (
+            "PR targets a branch that violates"
+            " the branching strategy"
+        ),
+        "recommendation": (
+            "Feature branches should target develop,"
+            " hotfixes should target main"
+        ),
+    },
+    "GIT-015": {
+        "title": "Develop Branch Not Protected",
+        "severity": Severity.HIGH,
+        "description": (
+            "Develop branch lacks branch protection rules"
+        ),
+        "recommendation": (
+            "Enable branch protection on develop"
+            " with required reviews"
+        ),
     },
 }

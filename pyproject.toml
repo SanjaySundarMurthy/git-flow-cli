@@ -4,9 +4,36 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "devops-git-flow-cli"
-version = "1.0.0"
-description = "Branch strategy enforcer and PR health checker for Git workflows"
+version = "2.0.0"
+description = "Branch strategy enforcer and PR health checker for Git workflows - 15 rules, live scanning, GitHub API"
 requires-python = ">=3.9"
+license = {text = "MIT"}
+readme = "README.md"
+authors = [
+    {name = "Sanjay S", email = "sanjaysundarmurthy@users.noreply.github.com"},
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Quality Assurance",
+    "Topic :: Software Development :: Version Control :: Git",
+    "Typing :: Typed",
+]
+keywords = [
+    "git", "branching", "devops", "cli", "audit",
+    "pull-request", "code-review", "best-practices",
+    "gitflow", "github-flow", "sarif",
+]
 dependencies = [
     "click>=8.0.0",
     "rich>=13.0.0",
@@ -16,14 +43,25 @@ dependencies = [
 [project.optional-dependencies]
 dev = [
     "pytest>=7.0",
+    "pytest-cov>=4.0",
     "ruff>=0.4",
 ]
+
+[project.urls]
+Homepage = "https://github.com/SanjaySundarMurthy/git-flow-cli"
+Repository = "https://github.com/SanjaySundarMurthy/git-flow-cli"
+Issues = "https://github.com/SanjaySundarMurthy/git-flow-cli/issues"
+Changelog = "https://github.com/SanjaySundarMurthy/git-flow-cli/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/SanjaySundarMurthy/git-flow-cli#readme"
 
 [project.scripts]
 git-flow-cli = "git_flow_cli.cli:cli"
 
 [tool.setuptools.packages.find]
 include = ["git_flow_cli*"]
+
+[tool.setuptools.package-data]
+git_flow_cli = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

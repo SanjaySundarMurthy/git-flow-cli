@@ -1,0 +1,11 @@
+# Minimal Configuration
+# Simplest possible config to get started
+
+name: my-project
+default_branch: main
+strategy: gitflow
+required_approvals: 1
+
+branches:
+  - name: main
+    is_protected: true
